@@ -2,8 +2,8 @@ name: Build and Push Image
 
 on:
   push:
-      branches:
-        - master
+    branches:
+      - master
   workflow_dispatch:
 
 jobs:
@@ -16,7 +16,6 @@ jobs:
     outputs:
       docker_tag: ${{ env.DOCKER_IMAGE_TAG_BUILD }}
 
-      
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v2
@@ -42,19 +41,23 @@ jobs:
           pip install -r requirements.txt
 
       - name: Build Docker Image
-        run: docker build -t ${{ env.DOCKER_IMAGE_NAME }}:${{ env.DOCKER_IMAGE_TAG_BUILD }} .
+        run: |
+          docker build -t ${{ env.DOCKER_IMAGE_NAME }}:${{ env.DOCKER_IMAGE_TAG_BUILD }} .
+          docker tag ${{ env.DOCKER_IMAGE_NAME }}:${{ env.DOCKER_IMAGE_TAG_BUILD }} ${{ env.DOCKER_IMAGE_NAME }}:latest
 
       - name: Log in to Docker Hub
         run: docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Push to Docker Hub
-        run: docker push ${{ env.DOCKER_IMAGE_NAME }}:${{ env.DOCKER_IMAGE_TAG_BUILD }}
+        run: |
+          docker push ${{ env.DOCKER_IMAGE_NAME }}:${{ env.DOCKER_IMAGE_TAG_BUILD }}
+          docker push ${{ env.DOCKER_IMAGE_NAME }}:latest
 
   update-deployment:
     needs: build-and-push
     runs-on: ubuntu-latest
     env:
-      DOCKER_IMAGE_NAME: ${{ github.repository_owner }}/celsius-to-fahrenheit
+      DOCKER_IMAGE_NAME: ${{ secrets.DOCKER_USERNAME }}/celsius-to-fahrenheit
 
     steps:
       - name: Checkout Repository
@@ -62,17 +65,18 @@ jobs:
 
       - name: Update Deployment YAML
         run: |
-        DOCKER_IMAGE_NAME="${{ env.DOCKER_IMAGE_NAME }}"
-        DOCKER_IMAGE_TAG="${{ needs.build-and-push.outputs.docker_tag }}"
-        sed -i "s|image: .*|image: ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}|" ./k8s_manifest/deployment.yaml
-
+          DOCKER_IMAGE_NAME="${{ env.DOCKER_IMAGE_NAME }}"
+          DOCKER_IMAGE_TAG="${{ needs.build-and-push.outputs.docker_tag }}"
+          sed -i "s|image: .*|image: ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}|" ./k8s_manifest/deployment.yaml
+          cat ./k8s_manifest/deployment.yaml
 
       - name: Commit and Push Changes
         run: |
           git config --global user.email "${{ secrets.GIT_USER_EMAIL }}"
           git config --global user.name "${{ secrets.GIT_USER_NAME }}"
+          DOCKER_IMAGE_TAG="${{ needs.build-and-push.outputs.docker_tag }}"
           git add ./k8s_manifest/deployment.yaml
-          git commit -m "Update Docker Image Tag to ${DOCKER_IMAGE_TAG}"
+          git commit -m "Update Docker Image Tag to ${DOCKER_IMAGE_TAG}" || echo "No changes to commit"
           git push
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
