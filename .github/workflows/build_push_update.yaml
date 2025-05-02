@@ -62,8 +62,10 @@ jobs:
 
       - name: Update Deployment YAML
         run: |
-          DOCKER_IMAGE_TAG=${{ needs.build-and-push.outputs.docker_tag }}
-          sed -i "s|image: ${DOCKER_IMAGE_NAME}:.*|image: ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}|" ./k8s_manifest/deployment.yaml
+        DOCKER_IMAGE_NAME="${{ env.DOCKER_IMAGE_NAME }}"
+        DOCKER_IMAGE_TAG="${{ needs.build-and-push.outputs.docker_tag }}"
+        sed -i "s|image: .*|image: ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}|" ./k8s_manifest/deployment.yaml
+
 
       - name: Commit and Push Changes
         run: |
