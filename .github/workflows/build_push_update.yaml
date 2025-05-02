@@ -69,7 +69,7 @@ jobs:
         run: |
           git config --global user.email "${{ secrets.GIT_USER_EMAIL }}"
           git config --global user.name "${{ secrets.GIT_USER_NAME }}"
-          git add ./k8s_manifest/deployment.yaml
+          git add /Users/oezeakachi/Documents/GitOps-with-EKS-ArgoCD-TF-obi/k8s_manifest/deployment.yaml
           git commit -m "Update Docker Image Tag to ${DOCKER_IMAGE_TAG}"
           git push
         env:
