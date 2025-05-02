@@ -10,7 +10,7 @@ jobs:
   build-and-push:
     runs-on: ubuntu-latest
     env:
-      DOCKER_IMAGE_NAME: ${{ github.repository_owner }}/celsius-to-fahrenheit
+      DOCKER_IMAGE_NAME: ${{ secrets.DOCKER_USERNAME }}/celsius-to-fahrenheit
       DOCKER_IMAGE_TAG_BUILD: ${{ github.run_number }}
 
     outputs:
