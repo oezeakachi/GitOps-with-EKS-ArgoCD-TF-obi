@@ -21,17 +21,18 @@ jobs:
       BUCKET_NAME: my-tfv1-state
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Configure AWS Credentials for State Management
         uses: aws-actions/configure-aws-credentials@v2
         with:
           role-to-assume: ${{ secrets.CI_ROLE }}
-          aws-region: eu-west-1 
+          aws-region: eu-west-1
+          audience: sts.amazonaws.com  
 
       - name: Set up Terraform for State Management
         uses: hashicorp/setup-terraform@v1
-      
+
       - name: Check if S3 Bucket Exists
         id: check-bucket
         run: |
@@ -48,7 +49,7 @@ jobs:
         run: |
           mv ./tf_state_management/backend.tf ./tf_state_management/backend.tf.backup || true
         working-directory: .
-      
+
       - name: Terraform fmt
         id: fmt
         run: terraform fmt -check
@@ -58,16 +59,16 @@ jobs:
         if: env.BUCKET_EXISTS == 'false'
         run: terraform init
         working-directory: ./tf_state_management
-      
+
       - name: Terraform Validate
         id: validate
         run: terraform validate -no-color
-      
+
       - name: Terraform Plan for State Management
         id: plan
         if: env.BUCKET_EXISTS == 'false'
         run: terraform plan -no-color -input=false
-        working-directory: ./tf_state_management 
+        working-directory: ./tf_state_management
         continue-on-error: true
 
       - name: Terraform Apply for State Management
@@ -81,10 +82,11 @@ jobs:
           output=$(terraform output -json)
           echo "BUCKET_NAME=$(echo "$output" | jq -r '.bucket_name.value')" >> $GITHUB_ENV
         working-directory: ./tf_state_management
-      
+
       - name: Restore Backend Config for State Management
         if: env.BUCKET_EXISTS == 'false'
         run: |
           mv ./state_management/backend.tf.backup ./state_management/backend.tf || true
         working-directory: .
+
   
