@@ -28,7 +28,7 @@ jobs:
         with:
           role-to-assume: ${{ secrets.CI_ROLE }}
           aws-region: eu-west-1
-          audience: sts.amazonaws.com  
+          audience: sts.amazonaws.com  # 👈 Added audience
 
       - name: Set up Terraform for State Management
         uses: hashicorp/setup-terraform@v1
@@ -88,5 +88,6 @@ jobs:
         run: |
           mv ./state_management/backend.tf.backup ./state_management/backend.tf || true
         working-directory: .
+
 
   
