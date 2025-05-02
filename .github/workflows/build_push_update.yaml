@@ -73,4 +73,4 @@ jobs:
           git commit -m "Update Docker Image Tag to ${DOCKER_IMAGE_TAG}"
           git push
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
