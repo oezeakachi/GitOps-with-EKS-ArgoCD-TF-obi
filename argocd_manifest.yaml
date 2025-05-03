@@ -6,7 +6,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: 'https://github.com/dishavirk/GitOps-with-EKS-ArgoCD-TF.git'
+    repoURL: 'https://github.com/oezeakachi/GitOps-with-EKS-ArgoCD-TF-obi.git'
     path: ./k8s_manifest
     targetRevision: HEAD
   destination:
