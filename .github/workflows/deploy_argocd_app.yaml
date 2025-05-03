@@ -1,53 +1,42 @@
-name: Deploy to EKS
+name: Deploy ArgoCD Application
 
 on:
   workflow_dispatch:
     inputs:
       cluster_name:
-        description: 'EKS Cluster Name (optional if secret is used)'
+        description: 'EKS Cluster Name (leave empty to use output from Deploy EKS Cluster workflow)'
         required: false
+        default: ''
+  repository_dispatch:
+    types: [deploy_argocd_app]
+
 
 jobs:
-  deploy:
+  deploy-argocd-application:
     runs-on: ubuntu-latest
-
-    env:
-      AWS_REGION: eu-west-1
-      AWS_DEFAULT_REGION: eu-west-1
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+      - name: Checkout Repository
+        uses: actions/checkout@v2
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v2
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v1
+
+      - name: Set up AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Determine Cluster Name
-        run: |
-          if [ -n "${{ inputs.cluster_name }}" ]; then
-            echo "CLUSTER_NAME=${{ inputs.cluster_name }}" >> $GITHUB_ENV
-          elif [ -n "${{ secrets.CLUSTER_NAME }}" ]; then
-            echo "CLUSTER_NAME=${{ secrets.CLUSTER_NAME }}" >> $GITHUB_ENV
-          else
-            echo "EKS cluster name is required."
-            exit 1
-          fi
-
-      - name: Install kubectl
-        uses: azure/setup-kubectl@v3
-        with:
-          version: 'latest'
+          aws-region: eu-west-1
 
       - name: Update kubeconfig
         run: |
-          aws eks update-kubeconfig --name $CLUSTER_NAME --region $AWS_REGION
+          EKS_CLUSTER_NAME="${{ github.event.inputs.cluster_name || github.event.client_payload.cluster_name }}"
+          if [ -z "$EKS_CLUSTER_NAME" ]; then
+            echo "EKS cluster name is required."
+            exit 1
+          fi
+          aws eks update-kubeconfig --name "$EKS_CLUSTER_NAME" --region eu-west-1
 
-      - name: Deploy to EKS (placeholder)
-        run: |
-          echo "Deploying to cluster: $CLUSTER_NAME"
-          # kubectl apply -f k8s/deployment.yaml
+      - name: Apply ArgoCD Application Manifest
+        run: kubectl apply -f ./argocd_manifest.yaml
 
