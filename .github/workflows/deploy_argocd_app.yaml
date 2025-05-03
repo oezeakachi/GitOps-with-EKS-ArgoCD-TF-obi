@@ -1,51 +1,53 @@
-name: Deploy ArgoCD Application
+name: Deploy to EKS
 
 on:
   workflow_dispatch:
     inputs:
       cluster_name:
-        description: 'EKS Cluster Name (leave empty to use output from Deploy EKS Cluster workflow)'
+        description: 'EKS Cluster Name (optional if secret is used)'
         required: false
-        default: ''
-  repository_dispatch:
-    types: [deploy_argocd_app]
 
 jobs:
-  deploy-argocd-application:
+  deploy:
     runs-on: ubuntu-latest
 
+    env:
+      AWS_REGION: eu-west-1
+      AWS_DEFAULT_REGION: eu-west-1
+
     steps:
-      - name: Checkout Repository
+      - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Install kubectl
-        uses: azure/setup-kubectl@v3
-        with:
-          version: 'latest' # You can also pin to a specific version like '1.29.0'
-
-      - name: Set up AWS credentials
+      - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: eu-west-1
+          aws-region: ${{ env.AWS_REGION }}
 
-      - name: Validate AWS Credentials
-        run: aws sts get-caller-identity
-
-      - name: Set EKS Cluster Name
+      - name: Determine Cluster Name
         run: |
-          if [ -n "${{ github.event.inputs.cluster_name }}" ]; then
-            echo "CLUSTER_NAME=${{ github.event.inputs.cluster_name }}" >> $GITHUB_ENV
-          elif [ -n "${{ github.event.client_payload.cluster_name }}" ]; then
-            echo "CLUSTER_NAME=${{ github.event.client_payload.cluster_name }}" >> $GITHUB_ENV
+          if [ -n "${{ inputs.cluster_name }}" ]; then
+            echo "CLUSTER_NAME=${{ inputs.cluster_name }}" >> $GITHUB_ENV
+          elif [ -n "${{ secrets.CLUSTER_NAME }}" ]; then
+            echo "CLUSTER_NAME=${{ secrets.CLUSTER_NAME }}" >> $GITHUB_ENV
           else
             echo "EKS cluster name is required."
             exit 1
           fi
 
-      - name: Update kubeconfig
-        run: aws eks update-kubeconfig --name "$CLUSTER_NAME" --region eu-west-1
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'latest'
 
-      - name: Apply ArgoCD Application Manifest
-        run: kubectl apply -f ./argocd_manifest.yaml
+      - name: Update kubeconfig
+        run: |
+          aws eks update-kubeconfig --name $CLUSTER_NAME --region $AWS_REGION
+
+      - name: Deploy to EKS (placeholder)
+        run: |
+          echo "Deploying to cluster: $CLUSTER_NAME"
+          # kubectl apply -f k8s/deployment.yaml
+
