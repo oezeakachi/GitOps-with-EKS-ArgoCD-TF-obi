@@ -13,7 +13,7 @@ terraform {
 data "terraform_remote_state" "eks" {
   backend = "s3"
   config = {
-    bucket = "my-tfv1-state"
+    bucket = "gitops-tf-obi"
     key    = "eks/terraform.tfstate"
     region = "eu-west-1"
   }
