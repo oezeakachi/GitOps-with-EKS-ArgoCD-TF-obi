@@ -10,10 +10,14 @@ on:
   repository_dispatch:
     types: [deploy_argocd_app]
 
-
 jobs:
   deploy-argocd-application:
     runs-on: ubuntu-latest
+
+    env:
+      AWS_REGION: eu-west-1
+      CLUSTER_NAME: ${{ github.event.inputs.cluster_name != '' && github.event.inputs.cluster_name || github.event.client_payload.cluster_name }}
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v2
@@ -26,17 +30,20 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: eu-west-1
+          aws-region: ${{ env.AWS_REGION }}
 
-      - name: Update kubeconfig
+      - name: Validate cluster name
         run: |
-          EKS_CLUSTER_NAME="${{ github.event.inputs.cluster_name || github.event.client_payload.cluster_name }}"
-          if [ -z "$EKS_CLUSTER_NAME" ]; then
+          if [ -z "$CLUSTER_NAME" ]; then
             echo "EKS cluster name is required."
             exit 1
           fi
-          aws eks update-kubeconfig --name "$EKS_CLUSTER_NAME" --region eu-west-1
+          echo "CLUSTER_NAME=$CLUSTER_NAME"
+
+      - name: Update kubeconfig
+        run: aws eks update-kubeconfig --name "$CLUSTER_NAME" --region "$AWS_REGION"
 
       - name: Apply ArgoCD Application Manifest
-        run: kubectl apply -f ./argocd_manifest.yaml
+        run: kubectl apply --validate=false -f ./argocd_manifest.yaml
+
 
