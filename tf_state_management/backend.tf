@@ -1,6 +1,6 @@
 terraform {
   backend "s3" {
-    bucket = "my-tfv1-state"
+    bucket = "gitops-tf-obi"
     key    = "eks/terraform.tfstate"
     region = "eu-west-1"
    }
